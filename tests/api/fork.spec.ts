@@ -1,5 +1,6 @@
 import * as allure from 'allure-js-commons';
 import { test, expect } from '../../src/fixtures/api-fixtures';
+import { readJson } from '../../src/assertions/read-json';
 import type { Gist } from '../../src/types/gist';
 
 test.describe('Gist forking', () => {
@@ -34,7 +35,7 @@ test.describe('Gist forking', () => {
     gistFactory.track(fork.id);
     expect(fork.id).not.toBe(original.id);
 
-    const full = (await (await api.getGist(fork.id)).json()) as Gist;
+    const full = await readJson<Gist>(await api.getGist(fork.id));
     expect(full.fork_of?.id).toBe(original.id);
     expect(full.owner?.login).not.toBe(original.owner?.login);
     expect(full).toHaveFile('forked.md', content);
@@ -54,7 +55,7 @@ test.describe('Gist forking', () => {
     const fork = (await response.json()) as Gist;
     gistFactory.track(fork.id);
 
-    const full = (await (await api.getGist(fork.id)).json()) as Gist;
+    const full = await readJson<Gist>(await api.getGist(fork.id));
     expect(full.public).toBe(false);
     expect(full.fork_of?.id).toBe(original.id);
   });
@@ -78,7 +79,7 @@ test.describe('Permissions on another user\'s gist', () => {
     const response = await api.updateGist(foreign.id, { description: 'should not happen' });
     await expect(response).toHaveStatus(404);
 
-    const unchanged = (await (await secondApi.getGist(foreign.id)).json()) as Gist;
+    const unchanged = await readJson<Gist>(await secondApi.getGist(foreign.id));
     expect(unchanged.description).toBe(foreign.description);
   });
 

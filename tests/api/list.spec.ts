@@ -1,5 +1,6 @@
 import * as allure from 'allure-js-commons';
 import { test, expect } from '../../src/fixtures/api-fixtures';
+import { readJson } from '../../src/assertions/read-json';
 import type { Gist } from '../../src/types/gist';
 
 test.describe('GET /gists — listing and pagination', () => {
@@ -49,8 +50,8 @@ test.describe('GET /gists — listing and pagination', () => {
     await gistFactory.create();
 
     await expect(async () => {
-      const first = (await (await api.listGists({ per_page: 1, page: 1 })).json()) as Gist[];
-      const second = (await (await api.listGists({ per_page: 1, page: 2 })).json()) as Gist[];
+      const first = await readJson<Gist[]>(await api.listGists({ per_page: 1, page: 1 }));
+      const second = await readJson<Gist[]>(await api.listGists({ per_page: 1, page: 2 }));
 
       expect(first, 'page 1 must contain exactly one gist').toHaveLength(1);
       expect(second, 'page 2 must contain exactly one gist').toHaveLength(1);
@@ -69,12 +70,14 @@ test.describe('GET /gists — listing and pagination', () => {
     const beforeCreation = new Date(Date.parse(gist.created_at) - 1000).toISOString();
     const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    const recentResponse = await api.listGists({ since: beforeCreation, per_page: 100 });
-    const recent = (await recentResponse.json()) as Gist[];
+    const recent = await readJson<Gist[]>(
+      await api.listGists({ since: beforeCreation, per_page: 100 }),
+    );
     expect(recent.map((g) => g.id)).toContain(gist.id);
 
-    const futureResponse = await api.listGists({ since: future, per_page: 100 });
-    const afterFuture = (await futureResponse.json()) as Gist[];
+    const afterFuture = await readJson<Gist[]>(
+      await api.listGists({ since: future, per_page: 100 }),
+    );
     expect(afterFuture.map((g) => g.id)).not.toContain(gist.id);
   });
 

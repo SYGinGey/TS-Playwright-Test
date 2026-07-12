@@ -2,6 +2,7 @@ import * as allure from 'allure-js-commons';
 import { test, expect } from '../../src/fixtures/api-fixtures';
 import { newApiContext } from '../../src/fixtures/api-fixtures';
 import { GistClient } from '../../src/api/gist-client';
+import { readJson } from '../../src/assertions/read-json';
 import type { Gist } from '../../src/types/gist';
 
 const NON_EXISTENT_GIST_ID = 'a'.repeat(32);
@@ -57,7 +58,7 @@ test.describe('Authentication and authorization errors', () => {
     const response = await anonApi.updateGist(gist.id, { description: 'hacked' });
     await expect(response).toHaveStatus(401);
 
-    const unchanged = (await (await api.getGist(gist.id)).json()) as Gist;
+    const unchanged = await readJson<Gist>(await api.getGist(gist.id));
     expect(unchanged.description).toBe(gist.description);
   });
 });

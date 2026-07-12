@@ -15,8 +15,9 @@ test.describe('Edit a gist via the web UI', () => {
     viewPage,
     gistFactory,
   }) => {
+    const content = 'original content'
     const gist = await gistFactory.create({
-      files: { 'edit-me.md': { content: 'original content' } },
+      files: { 'edit-me.md': { content } },
     });
     const updatedDescription = `${gist.description} — edited via UI ${randomUUID()}`;
     const updatedContent = `replaced via UI ${randomUUID()}`;
@@ -33,7 +34,7 @@ test.describe('Edit a gist via the web UI', () => {
     await expect(async () => {
       await page.reload();
       await expect(viewPage.contentText(updatedContent)).toBeVisible({ timeout: 2_000 });
-      await expect(page.getByText('original content')).toBeHidden();
+      await expect(page.getByText(content)).toBeHidden();
     }).toPass({ timeout: 15_000 });
   });
 });
