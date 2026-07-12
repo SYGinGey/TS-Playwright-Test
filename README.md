@@ -69,8 +69,6 @@ npm run test:all         # API, then UI
 
 For interactive debugging with time travel, use `npx playwright test --ui`.
 
-UI tests always run single-worker: they share one logged-in browser session, and GitHub's anti-abuse protection rejects parallel form submissions from it.
-
 ### Reports
 
 Every run produces both a Playwright HTML report and Allure results:
@@ -118,7 +116,6 @@ Configuration notes:
 - Add a repository secret **`GIST_TOKEN`** containing the PAT (the name `GITHUB_TOKEN` is reserved by Actions). Optionally add **`GIST_TOKEN_2`** (second account) to enable cross-account tests in CI.
 - For UI in CI, use a **dedicated machine account** with TOTP 2FA and add its **`GH_UI_USER`**, **`GH_UI_PASSWORD`**, and **`GH_UI_TOTP_SECRET`** (the base32 authenticator setup key) as secrets. Caveat: GitHub may still challenge logins from fresh runner IPs (device verification / captcha) — if that becomes flaky, a self-hosted runner with a stable IP is the fix.
 - **`GH_UI_*` must be the same account as `GIST_TOKEN`.** The UI tests set their data up through the API (account #1) and then edit it in the browser — a session belonging to any other account sees those gists as somebody else's, with no *Edit* button, and the test dies waiting for it. The same holds locally between `.env` and the saved session in `.auth/`.
-- Runs pin `workers: 1` regardless of pool size, and a concurrency group keeps overlapping runs from colliding on the same accounts' rate limits.
 - A pull request from a fork gets no secrets, so both jobs gate on theirs: lint and typecheck still run, everything needing an account is skipped rather than failing on a missing token.
 - Allure and Playwright HTML reports are uploaded as build artifacts; leftover test data is swept even when tests fail.
 

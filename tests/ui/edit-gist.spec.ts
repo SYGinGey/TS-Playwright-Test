@@ -25,7 +25,6 @@ test.describe('Edit a gist via the web UI', () => {
     await viewPage.editButton().click();
 
     await editorForm.descriptionInput.fill(updatedDescription);
-    await editorForm.clearContent();
     await editorForm.typeContent(updatedContent);
     await editorForm.updateGist();
 

@@ -1,7 +1,9 @@
 import type { Locator, Page } from '@playwright/test';
+import { expect } from '../../assertions/expect';
 
 export class GistEditorForm {
   private readonly root: Locator;
+  private readonly contentField: Locator;
   readonly descriptionInput: Locator;
   readonly filenameInput: Locator;
   readonly editor: Locator;
@@ -11,6 +13,7 @@ export class GistEditorForm {
     this.descriptionInput = this.root.getByPlaceholder(/gist description/i);
     this.filenameInput = this.root.getByPlaceholder(/filename including extension/i).first();
     this.editor = this.root.locator('.CodeMirror').first();
+    this.contentField = this.root.locator('textarea[name="gist[contents][][value]"]').first();
   }
 
   async fill(options: { description: string; filename: string; content: string }): Promise<void> {
@@ -20,21 +23,16 @@ export class GistEditorForm {
   }
 
   async typeContent(content: string): Promise<void> {
-    await this.editor.click();
-    await this.page.keyboard.insertText(content);
-    await this.page.waitForFunction(
-      (expected) =>
-        [
-          ...document.querySelectorAll<HTMLTextAreaElement>(
-            'textarea[name="gist[contents][][value]"]',
-          ),
-        ].some((textarea) => textarea.value.includes(expected)),
-      content,
-    );
+    await expect(async () => {
+      await this.clearContent();
+      await this.page.keyboard.insertText(content);
+      await expect(this.contentField).toHaveValue(content, { timeout: 2_000 });
+    }).toPass({ timeout: 20_000 });
   }
 
   async clearContent(): Promise<void> {
     await this.editor.click();
+    await expect(this.editor).toHaveClass(/CodeMirror-focused/, { timeout: 2_000 });
     await this.page.keyboard.press('ControlOrMeta+KeyA');
     await this.page.keyboard.press('Delete');
   }
