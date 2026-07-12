@@ -1,127 +1,130 @@
-# GitHub Gist Test Automation Assignment
+# GitHub Gist Test Automation
 
-## Objective
+[![API and UI tests](https://github.com/revizto/Sergey-Yarygin-Technical-Assignments-Web/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/revizto/Sergey-Yarygin-Technical-Assignments-Web/actions/workflows/tests.yml)
 
-Prepare a small, maintainable test automation solution for [GitHub Gist](https://gist.github.com/) that demonstrates your understanding of the product, its API, and the testing decisions you would make for a scalable automation project.
+Test automation solution for [GitHub Gist](https://gist.github.com/): REST API tests plus a small set of UI smoke tests, built with **TypeScript + Playwright**.
 
-The solution does not need exhaustive coverage. Focus on the most critical functionality, explain your judgment, and include meaningful edge cases where they add value.
+- The original assignment: [docs/ASSIGNMENT.md](docs/ASSIGNMENT.md)
 
-## Helpful Reference Links
+## Project layout
 
-| Area | Link |
+```
+├── src/
+│   ├── api/gist-client.ts        # endpoint-per-method wrapper over the Gist REST API
+│   ├── assertions/
+│   │   ├── expect.ts             # custom matchers: toHaveStatus, toHaveFile
+│   │   └── gist-assertions.ts    # asserts a gist matches the payload it was created from
+│   ├── config/env.ts             # environment variables and shared constants
+│   ├── fixtures/
+│   │   ├── api-fixtures.ts       # authenticated/anonymous clients as Playwright fixtures
+│   │   ├── ui-fixtures.ts        # page objects + API client for UI tests
+│   │   └── gist-factory.ts       # creates test gists, guarantees cleanup
+│   ├── types/gist.ts             # request/response typings
+│   └── ui/
+│       ├── pages/                # page objects (create, view)
+│       └── components/           # reusable page components (gist editor form)
+├── tests/
+│   ├── api/                      # create, read, update, delete, star, list, negative
+│   └── ui/                       # create via UI, edit via UI, API data in UI
+├── scripts/
+│   └── cleanup.ts                # sweeps leftover test gists
+└── .github/workflows/tests.yml   # CI: lint + typecheck + API and UI tests
+```
+
+## Prerequisites
+
+- Node.js 20+
+- A GitHub account and a personal access token:
+  - **classic PAT** with the `gist` scope, or
+  - **fine-grained PAT** with the *Gists* account permission (read and write).
+
+> Use a dedicated test account if possible: the suite creates and deletes real gists.
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env       # then put your token into .env
+```
+
+Required environment variables (see `.env.example`):
+
+| Variable | Purpose |
 | --- | --- |
-| GitHub Gist REST API | [REST API endpoints for gists](https://docs.github.com/en/rest/gists/gists?apiVersion=2022-11-28#about-gists) |
-| Gist web interface | [Creating gists](https://docs.github.com/en/get-started/writing-on-github/editing-and-sharing-content-with-gists/creating-gists) |
-| GitHub REST API basics | [Getting started with the REST API](https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api?apiVersion=2022-11-28) |
-| Authentication | [Authenticating to the REST API](https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api?apiVersion=2022-11-28) |
-| API rate limits | [Rate limits for the REST API](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28) |
-| Pagination | [Using pagination in the REST API](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) |
-| REST API best practices | [Best practices for using the REST API](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api?apiVersion=2022-11-28) |
-| CI/CD | [GitHub Actions documentation](https://docs.github.com/en/actions) |
-| JavaScript/TypeScript API testing | [Playwright API testing](https://playwright.dev/docs/api-testing) |
-| Optional UI testing | [Playwright documentation](https://playwright.dev/docs/intro) |
-| TypeScript | [TypeScript documentation](https://www.typescriptlang.org/docs/) |
-| Node.js | [Node.js introduction](https://nodejs.org/learn/getting-started/introduction-to-nodejs) |
+| `GITHUB_TOKEN` | PAT of account #1 — used by API tests, UI data setup, and cleanup |
+| `GITHUB_TOKEN_2`, `GITHUB_TOKEN_3`, … | Optional account pool: gist-scoped PATs of extra accounts (numbered, no gaps). Each account adds parallel capacity, and ≥2 accounts enable cross-account tests (real forks, foreign-gist permissions) |
+| `GIST_API_URL` | Optional API base URL override (defaults to `https://api.github.com`). Deliberately not named `GITHUB_API_URL` — Actions injects that one into every step itself |
 
-## Assignment
+Rate limits are per GitHub account, so API-test parallelism scales with the pool: workers are sharded across accounts round-robin at 4 workers per account (the measured safe concurrency). The UI project always uses account #1 — its saved browser session belongs to that account.
 
-### 1. Project Familiarization
+## Running the tests
 
-Please familiarize yourself with GitHub Gist functionality. In particular, you are expected to:
+```bash
+npm test                 # API tests (default)
+npm run test:ui          # UI tests (see authentication below)
+npm run test:ui:debug    # UI tests with Playwright Inspector (headed, step-through)
+npm run test:ui:headed   # UI tests in a visible browser
+npm run test:all         # API, then UI
+```
 
-- Review the [GitHub Gist REST API documentation](https://docs.github.com/en/rest/gists/gists?apiVersion=2022-11-28#about-gists).
-- Verify that you can call the relevant API endpoints successfully.
-- Explore the [Gist web interface](https://gist.github.com/) and understand its main features and workflows.
-- Pay attention to behavior around creating, reading, updating, deleting, starring, forking, listing, and viewing gist revisions where relevant.
+For interactive debugging with time travel, use `npx playwright test --ui`.
 
-### 2. Testing Strategy and Implementation
+UI tests always run single-worker: they share one logged-in browser session, and GitHub's anti-abuse protection rejects parallel form submissions from it.
 
-Once you are comfortable with both the API and the frontend, please:
+### Reports
 
-- Outline the testing strategy you would adopt.
-- Identify key test cases and scenarios, including important edge cases.
-- Explain which tools and frameworks you would use and why.
-- Prepare a small boilerplate project.
-- Implement automated REST API tests.
-- Optionally include a few UI tests as a plus.
+Every run produces both a Playwright HTML report and Allure results:
 
-Preferred implementation languages:
+```bash
+npm run report              # open the Playwright HTML report
+npm run report:allure       # generate the Allure report from allure-results/
+npm run report:allure:open  # open the generated Allure report
+```
 
-- JavaScript
-- TypeScript
+> Allure report generation requires Java (any modern JRE); the Allure CLI ships with the project as a dev dependency.
 
+Tests are annotated with Allure metadata: epics (`Gist REST API` / `Gist Web UI`), features per behavior area, severity, and tags (`security`, `validation`). Multi-phase scenarios use `test.step`, which shows up as expandable steps in both Allure and the Playwright HTML report. Allure results are wiped at the start of every run (see `scripts/global-setup.ts`), so a report always reflects a single run.
 
-Please build your solution with extensibility, scalability, and ease of CI/CD integration in mind.
+Every API call becomes a report step (`POST /gists`) with the exchange attached inside it as separate files — request, response headers, response body (pretty-printed JSON, size-capped); see `src/api/request-logger.ts`. Status assertions use a custom `toHaveStatus` matcher whose failure message stays short and points to the attached exchange. Sensitive headers (`Authorization`, cookies) are never captured.
+### UI tests: authentication
 
-## Recommended Focus Areas
+UI tests need a logged-in GitHub session (stored in `.auth/user.json`, gitignored). The `ui-setup` project resolves it automatically before every UI run — locally and in CI alike:
 
-You are not expected to automate everything. Prioritize functionality that gives strong confidence in the most important Gist workflows.
+1. **A valid saved session exists** → reused as is.
+2. **`GH_UI_USER` / `GH_UI_PASSWORD` / `GH_UI_TOTP_SECRET` are set** → performs a real login, generating the 2FA code from the TOTP secret, and saves the session for subsequent runs.
+3. **Neither** → UI tests are skipped with an explanatory message rather than failing.
 
-Suggested API areas to consider:
+The account must be a dedicated test (machine) account with TOTP-based 2FA; `GH_UI_TOTP_SECRET` is the base32 setup key GitHub shows when configuring the authenticator app. Put the three variables into `.env` locally or into repository secrets for CI.
 
-- Create a secret or public gist with one or more files.
-- Retrieve a gist and validate key response fields.
-- Update a gist description, filename, or file content.
-- Delete a gist and verify it can no longer be retrieved.
-- Validate required fields and malformed payload behavior.
-- Validate unauthorized or insufficient-permission requests.
-- Check pagination and filtering where relevant.
-- Consider rate-limit and cleanup behavior to keep the test suite reliable.
+### Test data and cleanup
 
-Suggested UI areas, if you include UI tests:
+Every gist created by the suite has a description starting with `[gist-e2e]`. Fixtures delete their data after each test; if a run is interrupted, sweep the leftovers with:
 
-- Create a gist from the web interface.
-- Edit an existing gist.
-- Validate important user-facing messages or navigation states.
-- Confirm that API-created data appears correctly in the UI.
+```bash
+npm run cleanup
+```
 
-## What We Will Discuss
+## CI
 
-During the interview, we will discuss:
+`.github/workflows/tests.yml` runs two jobs on every push/PR:
 
-- Your proposed testing strategy.
-- Your project architecture and technical decisions.
-- Ease of use and maintainability of your solution.
-- Edge cases and risk areas you identified.
-- The scalability of the project and approach.
+- **api-tests**: lint, typecheck, and the API project.
+- **ui-tests**: the UI project, in parallel with api-tests. Runs only when the `GH_UI_*` secrets are configured; otherwise it's a no-op.
 
-## During the Interview
+Both jobs work on account #1 at the same time, so each tags the gists it creates with its own `GIST_RUN_ID` (`<run id>-<job>`; the run id alone is shared by both jobs) and its post-run sweep removes only those. Gists of *another* run are left alone until they are older than two hours — long past the job timeouts, so a sweep can never take data out from under a run still going. Without `GIST_RUN_ID` — a local `npm run cleanup` — the sweep takes everything the suite ever left behind.
 
-### Part 1: Presentation and Walkthrough
+Configuration notes:
 
-You will present your work, walk us through your thought process, describe your testing strategy, and explain the decisions you made.
+- Add a repository secret **`GIST_TOKEN`** containing the PAT (the name `GITHUB_TOKEN` is reserved by Actions). Optionally add **`GIST_TOKEN_2`** (second account) to enable cross-account tests in CI.
+- For UI in CI, use a **dedicated machine account** with TOTP 2FA and add its **`GH_UI_USER`**, **`GH_UI_PASSWORD`**, and **`GH_UI_TOTP_SECRET`** (the base32 authenticator setup key) as secrets. Caveat: GitHub may still challenge logins from fresh runner IPs (device verification / captcha) — if that becomes flaky, a self-hosted runner with a stable IP is the fix.
+- **`GH_UI_*` must be the same account as `GIST_TOKEN`.** The UI tests set their data up through the API (account #1) and then edit it in the browser — a session belonging to any other account sees those gists as somebody else's, with no *Edit* button, and the test dies waiting for it. The same holds locally between `.env` and the saved session in `.auth/`.
+- Runs pin `workers: 1` regardless of pool size, and a concurrency group keeps overlapping runs from colliding on the same accounts' rate limits.
+- A pull request from a fork gets no secrets, so both jobs gate on theirs: lint and typecheck still run, everything needing an account is skipped rather than failing on a missing token.
+- Allure and Playwright HTML reports are uploaded as build artifacts; leftover test data is swept even when tests fail.
 
-You should also be prepared to walk through your code.
+## Quality gates
 
-You are welcome to prepare supporting materials or notes in advance, although this is optional.
-
-### Part 2: Live Test Implementation
-
-You will be asked to implement one or two additional API tests during the interview based on a business scenario.
-
-This part is intended to help us understand:
-
-- How you think.
-- How you approach problems.
-- How you work in practice.
-- How easily your project can be extended.
-
-## Tips for Success
-
-- Be curious: take time to understand the product and its behavior in depth.
-- Stay organized: prepare notes, assumptions, and proposed test scenarios in advance.
-- Share your thinking: if you see opportunities for improvement or have ideas beyond the basic requirements, feel free to discuss them.
-- Keep the project easy to run locally and in CI.
-- Document required environment variables, such as the GitHub token.
-- Include clear setup and execution instructions.
-- Make cleanup reliable so test data does not accumulate unnecessarily.
-
-## Use of AI
-
-We value thoughtful use of tools that improve productivity. However, for this assignment, we would prefer the work to be completed without using AI tools so we can better understand your own approach and decision-making.
-
-## Closing
-
-Congratulations again on making it this far. We look forward to learning more about your experience and thinking during the interview.
-
-Please let us know if you have any questions or need clarification.
+```bash
+npm run lint
+npm run typecheck
+```

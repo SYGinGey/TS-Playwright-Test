@@ -1,0 +1,49 @@
+import type { Locator, Page } from '@playwright/test';
+
+export class GistEditorForm {
+  private readonly root: Locator;
+  readonly descriptionInput: Locator;
+  readonly filenameInput: Locator;
+  readonly editor: Locator;
+
+  constructor(private readonly page: Page) {
+    this.root = page.locator('form').filter({ has: page.locator('.CodeMirror') });
+    this.descriptionInput = this.root.getByPlaceholder(/gist description/i);
+    this.filenameInput = this.root.getByPlaceholder(/filename including extension/i).first();
+    this.editor = this.root.locator('.CodeMirror').first();
+  }
+
+  async fill(options: { description: string; filename: string; content: string }): Promise<void> {
+    await this.descriptionInput.fill(options.description);
+    await this.filenameInput.fill(options.filename);
+    await this.typeContent(options.content);
+  }
+
+  async typeContent(content: string): Promise<void> {
+    await this.editor.click();
+    await this.page.keyboard.insertText(content);
+    await this.page.waitForFunction(
+      (expected) =>
+        [
+          ...document.querySelectorAll<HTMLTextAreaElement>(
+            'textarea[name="gist[contents][][value]"]',
+          ),
+        ].some((textarea) => textarea.value.includes(expected)),
+      content,
+    );
+  }
+
+  async clearContent(): Promise<void> {
+    await this.editor.click();
+    await this.page.keyboard.press('ControlOrMeta+KeyA');
+    await this.page.keyboard.press('Delete');
+  }
+
+  async createSecretGist(): Promise<void> {
+    await this.root.getByRole('button', { name: /create secret gist/i }).click();
+  }
+
+  async updateGist(): Promise<void> {
+    await this.root.getByRole('button', { name: /update.*gist/i }).click();
+  }
+}

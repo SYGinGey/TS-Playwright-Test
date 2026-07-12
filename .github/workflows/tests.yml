@@ -1,0 +1,140 @@
+name: API and UI tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # The suite shares one GitHub account; overlapping runs would fight over
+  # rate limits and test data.
+  group: gist-api-tests
+  cancel-in-progress: false
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITHUB_TOKEN: ${{ secrets.GIST_TOKEN }}
+      GITHUB_TOKEN_2: ${{ secrets.GIST_TOKEN_2 }}
+      GIST_RUN_ID: ${{ github.run_id }}-${{ github.job }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check API credentials
+        id: creds
+        run: echo "have=${{ secrets.GIST_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run API tests
+        if: steps.creds.outputs.have == 'true'
+        run: npx playwright test --project=api
+
+      - name: Sweep leftover test data
+        if: always() && steps.creds.outputs.have == 'true'
+        run: npm run cleanup
+
+      - name: Generate Allure report
+        if: always() && steps.creds.outputs.have == 'true'
+        run: npm run report:allure
+
+      - name: Upload Allure report
+        if: always() && steps.creds.outputs.have == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
+          retention-days: 14
+
+      - name: Upload Playwright HTML report
+        if: always() && steps.creds.outputs.have == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  ui-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GITHUB_TOKEN: ${{ secrets.GIST_TOKEN }}
+      GIST_RUN_ID: ${{ github.run_id }}-${{ github.job }}
+      GH_UI_USER: ${{ secrets.GH_UI_USER }}
+      GH_UI_PASSWORD: ${{ secrets.GH_UI_PASSWORD }}
+      GH_UI_TOTP_SECRET: ${{ secrets.GH_UI_TOTP_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check UI credentials
+        id: creds
+        run: echo "have=${{ secrets.GH_UI_USER != '' && secrets.GH_UI_PASSWORD != '' && secrets.GH_UI_TOTP_SECRET != '' }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        if: steps.creds.outputs.have == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.creds.outputs.have == 'true'
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        if: steps.creds.outputs.have == 'true'
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.creds.outputs.have == 'true' && steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies
+        if: steps.creds.outputs.have == 'true' && steps.browser-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run UI tests
+        if: steps.creds.outputs.have == 'true'
+        run: npx playwright test --project=ui
+
+      - name: Sweep leftover test data
+        if: always() && steps.creds.outputs.have == 'true'
+        run: npm run cleanup
+
+      - name: Generate Allure report
+        if: always() && steps.creds.outputs.have == 'true'
+        run: npm run report:allure
+
+      - name: Upload Allure report
+        if: always() && steps.creds.outputs.have == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-ui
+          path: allure-report/
+          retention-days: 14
+
+      - name: Upload Playwright HTML report
+        if: always() && steps.creds.outputs.have == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-ui
+          path: playwright-report/
+          retention-days: 14
