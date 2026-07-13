@@ -78,7 +78,6 @@ npm run report              # open the Playwright HTML report
 npm run report:allure       # generate the Allure report from allure-results/
 npm run report:allure:open  # open the generated Allure report
 ```
-
 > Allure report generation requires Java (any modern JRE); the Allure CLI ships with the project as a dev dependency.
 
 ### UI tests: authentication
