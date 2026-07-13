@@ -1,10 +1,12 @@
 import type { Locator, Page } from '@playwright/test';
+import { step } from '../step';
 
 export class GistViewPage {
   static readonly URL_PATTERN = /gist\.github\.com\/[^/]+\/([0-9a-f]+)/i;
 
   constructor(private readonly page: Page) {}
 
+  @step('open the gist page')
   async goto(htmlUrl: string): Promise<void> {
     await this.page.goto(htmlUrl);
   }

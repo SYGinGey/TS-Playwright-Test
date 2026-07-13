@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '../../assertions/expect';
+import { step } from '../step';
 
 export class GistEditorForm {
   private readonly root: Locator;
@@ -16,12 +17,14 @@ export class GistEditorForm {
     this.contentField = this.root.locator('textarea[name="gist[contents][][value]"]').first();
   }
 
+  @step('fill in description, filename and content')
   async fill(options: { description: string; filename: string; content: string }): Promise<void> {
     await this.descriptionInput.fill(options.description);
     await this.filenameInput.fill(options.filename);
     await this.typeContent(options.content);
   }
 
+  @step('type the file content into the editor')
   async typeContent(content: string): Promise<void> {
     await expect(async () => {
       await this.clearContent();
@@ -30,6 +33,7 @@ export class GistEditorForm {
     }).toPass({ timeout: 20_000 });
   }
 
+  @step('clear the editor')
   async clearContent(): Promise<void> {
     await this.editor.click();
     await expect(this.editor).toHaveClass(/CodeMirror-focused/, { timeout: 2_000 });
@@ -37,10 +41,12 @@ export class GistEditorForm {
     await this.page.keyboard.press('Delete');
   }
 
+  @step('submit "Create secret gist"')
   async createSecretGist(): Promise<void> {
     await this.root.getByRole('button', { name: /create secret gist/i }).click();
   }
 
+  @step('submit "Update gist"')
   async updateGist(): Promise<void> {
     await this.root.getByRole('button', { name: /update.*gist/i }).click();
   }
