@@ -81,9 +81,6 @@ npm run report:allure:open  # open the generated Allure report
 
 > Allure report generation requires Java (any modern JRE); the Allure CLI ships with the project as a dev dependency.
 
-Tests are annotated with Allure metadata: epics (`Gist REST API` / `Gist Web UI`), features per behavior area, severity, and tags (`security`, `validation`). Multi-phase scenarios use `test.step`, which shows up as expandable steps in both Allure and the Playwright HTML report. Allure results are wiped at the start of every run (see `scripts/global-setup.ts`), so a report always reflects a single run.
-
-Every API call becomes a report step (`POST /gists`) with the exchange attached inside it as separate files — request, response headers, response body (pretty-printed JSON, size-capped); see `src/api/request-logger.ts`. Status assertions use a custom `toHaveStatus` matcher whose failure message stays short and points to the attached exchange. Sensitive headers (`Authorization`, cookies) are never captured.
 ### UI tests: authentication
 
 UI tests need a logged-in GitHub session (stored in `.auth/user.json`, gitignored). The `ui-setup` project resolves it automatically before every UI run — locally and in CI alike:
