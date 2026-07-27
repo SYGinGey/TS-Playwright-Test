@@ -1,5 +1,11 @@
 import 'dotenv/config';
-import { API_BASE_URL, GIST_DESCRIPTION_PREFIX, RUN_ID, TEST_GIST_PREFIX } from '../src/config/env';
+import {
+  API_BASE_URL,
+  GIST_DESCRIPTION_PREFIX,
+  GITHUB_API_HEADERS,
+  RUN_ID,
+  TEST_GIST_PREFIX,
+} from '../src/config/env';
 import { tokenPool } from '../src/config/account-pool';
 import type { Gist } from '../src/types/gist';
 
@@ -23,8 +29,7 @@ function shouldDelete(gist: Gist): boolean {
 
 function headersFor(token: string): Record<string, string> {
   return {
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
+    ...GITHUB_API_HEADERS,
     Authorization: `Bearer ${token}`,
   };
 }

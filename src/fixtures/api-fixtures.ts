@@ -2,19 +2,14 @@ import { test as base, request, type APIRequestContext } from '@playwright/test'
 import { GistClient } from '../api/gist-client';
 import { GistFactory } from './gist-factory';
 import { withRequestLogging } from '../api/request-logger';
-import { API_BASE_URL } from '../config/env';
+import { API_BASE_URL, GITHUB_API_HEADERS } from '../config/env';
 import { otherTokenForWorker, tokenForWorker } from '../config/account-pool';
-
-const COMMON_HEADERS = {
-  Accept: 'application/vnd.github+json',
-  'X-GitHub-Api-Version': '2022-11-28',
-};
 
 export async function newApiContext(token?: string): Promise<APIRequestContext> {
   const context = await request.newContext({
     baseURL: API_BASE_URL,
     extraHTTPHeaders: {
-      ...COMMON_HEADERS,
+      ...GITHUB_API_HEADERS,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });

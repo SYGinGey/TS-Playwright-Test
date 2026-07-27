@@ -7,6 +7,11 @@ export const GIST_DESCRIPTION_PREFIX = RUN_ID
   ? `${TEST_GIST_PREFIX}[run-${RUN_ID}]`
   : TEST_GIST_PREFIX;
 
+export const GITHUB_API_HEADERS = {
+  Accept: 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28',
+};
+
 export function requireToken(): string {
   const token = process.env.GITHUB_TOKEN;
   if (!token) {
