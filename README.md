@@ -1,6 +1,6 @@
 # GitHub Gist Test Automation
 
-[![API and UI tests](https://github.com/revizto/Sergey-Yarygin-Technical-Assignments-Web/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/revizto/Sergey-Yarygin-Technical-Assignments-Web/actions/workflows/tests.yml)
+[![API and UI tests](https://github.com/SYGinGey/TS-Playwright-Test/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/SYGinGey/TS-Playwright-Test/actions/workflows/tests.yml)
 
 Test automation solution for [GitHub Gist](https://gist.github.com/): REST API tests plus a small set of UI smoke tests, built with **TypeScript + Playwright**.
 

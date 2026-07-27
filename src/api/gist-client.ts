@@ -1,5 +1,5 @@
 import type { APIRequestContext, APIResponse } from '@playwright/test';
-import type { CreateGistPayload, ListGistsParams, UpdateGistPayload } from '../types/gist';
+import type {CreateGistPayload, GistCommentPayload, ListGistsParams, UpdateGistPayload} from '../types/gist';
 
 export class GistClient {
   constructor(private readonly request: APIRequestContext) {}
@@ -60,6 +60,22 @@ export class GistClient {
 
   forkGist(gistId: string): Promise<APIResponse> {
     return this.request.post(`/gists/${gistId}/forks`);
+  }
+
+  createGistComment(gistId: string, payload: GistCommentPayload): Promise<APIResponse> {
+    return this.request.post(`/gists/${gistId}/comments`, { data: payload });
+  }
+
+  getGistComment(gistId: string, commentId: number): Promise<APIResponse> {
+    return this.request.get(`/gists/${gistId}/comments/${commentId}`);
+  }
+
+  updateGistComment(gistId: string, commentId: number, payload: GistCommentPayload): Promise<APIResponse> {
+    return this.request.patch(`/gists/${gistId}/comments/${commentId}`, { data: payload });
+  }
+
+  deleteGistComment(gistId: string, commentId: number): Promise<APIResponse> {
+    return this.request.delete(`/gists/${gistId}/comments/${commentId}`);
   }
 
   /** For absolute URLs returned by the API, e.g. files[*].raw_url. */

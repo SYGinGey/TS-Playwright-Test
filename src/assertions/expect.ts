@@ -1,6 +1,7 @@
 import { expect as baseExpect } from '@playwright/test';
 import type { APIResponse } from '@playwright/test';
 import type { Gist } from '../types/gist';
+import { rateLimitNote } from '../api/rate-limit';
 
 export const expect = baseExpect.extend({
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -13,9 +14,11 @@ export const expect = baseExpect.extend({
       };
     }
 
+    const note = rateLimitNote(response);
     return {
       pass,
       message: () =>
+        (note ? `${note}\n\n` : '') +
         `expected status ${expected}, received ${response.status()} ${response.statusText()} ` +
         `for ${response.url()} — see the attached exchange`,
     };

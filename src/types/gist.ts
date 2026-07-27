@@ -39,6 +39,18 @@ export interface Gist {
   fork_of?: Gist;
 }
 
+export interface GistComment {
+  id: number;
+  url: string;
+  body: string;
+  owner?: GistOwner;
+  created_at: string;
+}
+
+export interface GistCommentPayload {
+  body: string;
+}
+
 export interface CreateGistPayload {
   description?: string;
   public?: boolean;

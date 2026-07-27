@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { tokenPool } from './src/config/account-pool';
 import { devices } from '@playwright/test';
 import { GIST_WEB_URL, STORAGE_STATE_PATH } from './src/config/env';
+import { RATE_LIMIT_MARKER } from './src/api/rate-limit';
 
 dotenv.config();
 
@@ -16,7 +17,22 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html', { open: 'never' }],
-    ['allure-playwright', { resultsDir: 'allure-results' }],
+    [
+      'allure-playwright',
+      {
+        resultsDir: 'allure-results',
+        categories: [
+          {
+            name: 'GitHub rate limit — not a product defect',
+            description:
+              'The suite exhausted the API quota of the account. Re-run once the limit ' +
+              'resets, or add another account to the pool (GITHUB_TOKEN_2, …).',
+            messageRegex: `(?s).*${RATE_LIMIT_MARKER}.*`,
+            matchedStatuses: ['failed', 'broken'],
+          },
+        ],
+      },
+    ],
     ...(process.env.CI ? ([['github']] as const) : []),
   ],
   timeout: 30_000,
