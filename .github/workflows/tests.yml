@@ -13,7 +13,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
   api-tests:
+    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -34,12 +55,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
 
       - name: Run API tests
         if: steps.creds.outputs.have == 'true'
@@ -70,6 +85,7 @@ jobs:
           retention-days: 14
 
   ui-tests:
+    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
